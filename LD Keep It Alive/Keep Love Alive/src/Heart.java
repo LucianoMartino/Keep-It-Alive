@@ -1,18 +1,11 @@
 import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
 
-import javax.imageio.ImageIO;
-
-public class Heart {
+public class Heart extends hasImage implements Falling{
 	private final Dimension WINDOW;
-	private final int SCALE;
-	private BufferedImage image = null;
 	private Rectangle bounds;
-	private int x, y, width, height;
+	private int x, y;
 	private double ySpeed = 1;
 	private boolean hasParachute = false, beenHit = false;
 
@@ -26,17 +19,6 @@ public class Heart {
 		y = -height;
 
 		bounds = new Rectangle(width, height, x, y);
-	}
-
-	private void setImage(String path) {
-		try {
-			image = ImageIO.read(new File(path));
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
-		width = image.getWidth() * SCALE;
-		height = image.getHeight() * SCALE;
 	}
 
 	public void draw(Graphics2D g) {
@@ -72,6 +54,6 @@ public class Heart {
 	}
 
 	public void destroy() {
-		Main.hearts.remove(this);
+		Main.stuff.remove(this);
 	}
 }
