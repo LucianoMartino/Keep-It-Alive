@@ -1,0 +1,11 @@
+Left Click = Shoot Bullet
+Middle Click = New Game
+Right Click = Shoot Parachute
+
+Mouse = Aim
+
+Shoot Parachutes at Hearts &
+Bullets at Fists
+
+Enjoy,
+- Luciano
