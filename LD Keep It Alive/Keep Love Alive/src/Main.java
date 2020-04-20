@@ -1,25 +1,26 @@
 import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.FontFormatException;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Toolkit;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
 public class Main extends JPanel {
+	//IF YOU'RE READING THIS YOU'LL WANT TO CHANGE THE GAMESTATE IN ADDNOTIFY TO MENU
 	private static final long serialVersionUID = 1L;
 
-	private final static int SCALE = (int)(Toolkit.getDefaultToolkit().getScreenSize().height / 200.);
+	private final static int SCALE = (int) (Toolkit.getDefaultToolkit().getScreenSize().height / 200.);
 	private final static Dimension winSize = new Dimension(150 * SCALE, 200 * SCALE);
 
 	private static Queue<Integer> mouseQueue = new LinkedBlockingQueue<Integer>();
@@ -44,12 +45,13 @@ public class Main extends JPanel {
 	private static int mouseX = 0, mouseY = 0;
 	private double direction;
 
-	private GameState currState = GameState.PLAY;
+	private GameState currState;
+	public static int lives;
 
 	private final Color BACKGROUND = new Color(0xdd88cc), PLAYER = new Color(0xcc5555);
 
-	static ArrayList<Heart> hearts = new ArrayList<Heart>();
-	static ArrayList<Projectile> projectiles = new ArrayList<Projectile>();
+	static ArrayList<Falling> stuff = new ArrayList<Falling>();
+	static ArrayList<Projectile> projectiles = new ArrayList<Projectile>();;
 
 	public static void main(String[] args) {
 		JPanel panel = new Main();
@@ -84,9 +86,16 @@ public class Main extends JPanel {
 
 	public void addNotify() {
 		super.addNotify();
-		hearts.add(new Heart(SCALE, winSize));
+		
+		mouseQueue.clear();
+		stuff.clear();;
+		projectiles.clear();
+		
+		currState = GameState.DEAD;
+		lives = 3;
+		
+		stuff.add(new Heart(SCALE, winSize));
 		lastHeartTime = getTime();
-		;
 	}
 
 	private double delta = 0, secTime = 0, now, last;
@@ -112,7 +121,7 @@ public class Main extends JPanel {
 		frames++;
 
 		try {
-			Thread.sleep(2);
+			Thread.sleep(5);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
@@ -132,56 +141,81 @@ public class Main extends JPanel {
 	}
 
 	private int playerWidth = SCALE * 10, playerHeight = SCALE * 7, playerX, playerY;
-
+	BufferedImage image = null;
+	int width = 0, height = 0;
 	private void render(Graphics2D g) {
 		g.setColor(BACKGROUND);
 		g.fillRect(0, 0, getWidth(), getHeight());
 
-		switch(currState) {
+		switch (currState) {
 		case MENU:
+			
 			try {
-				Font f = Font.createFont(Font.TRUETYPE_FONT, new File("LD-KLA/Symtext.ttf"));
-				g.setFont(f);
-			} catch (FontFormatException | IOException e) {
-				// TODO Auto-generated catch block
+				image = ImageIO.read(new File("LD-KLA/icon.png"));
+			} catch (IOException e) {
 				e.printStackTrace();
 			}
-			
-			g.drawString("KEEP LOVE ALIVE:", SCALE * 10, SCALE * 5);
+
+			width = image.getWidth() * SCALE;
+			height = image.getHeight() * SCALE;
+
+			g.drawImage(image, (int) (getWidth() / 2. - width / 2.), 0, width, height, null);
+
+			try {
+				image = ImageIO.read(new File("LD-KLA/menu.png"));
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+
+			width = image.getWidth() * SCALE;
+
+			g.drawImage(image, (int) (getWidth() / 2. - width / 2.), height, width, image.getHeight() * SCALE, null);
+			break;
 		case PLAY:
-			for (Heart h : hearts) {
-				h.draw(g);
+			for (Falling f : stuff) {
+				f.draw(g);
 			}
 			g.setColor(Color.BLACK);
-			g.drawLine((int)(getWidth() / 2.), 0, (int)(getWidth() / 2.), getHeight());
-
-			g.setColor(PLAYER);
-			g.fillOval(playerX-SCALE*5, playerY, SCALE*10, SCALE*10);
-			g.rotate(direction, getWidth() / 2., getHeight());
 			
+			g.setColor(PLAYER);
+			g.fillOval(playerX - SCALE * 5, playerY, SCALE * 10, SCALE * 10);
+			g.rotate(direction, getWidth() / 2., getHeight());
+
 			for (Projectile p : projectiles)
 				p.draw(g);
-			
+
 			g.setColor(PLAYER);
 			g.fillRect(playerX, playerY, playerWidth, playerHeight);
+			break;
+		case DEAD:
+			try {
+				image = ImageIO.read(new File("LD-KLA/fin.png"));
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+
+			width = image.getWidth() * SCALE;
+			height = image.getHeight() * SCALE;
+
+			g.drawImage(image, (int) (getWidth() / 2. - width / 2.), (int) (getHeight() / 2. - height / 2.), width, height, null);
 			break;
 		}
 	}
 
 	private void tick() {
 		if (currState == GameState.PLAY) {
-			playerX = (int) ((((double)getWidth() / SCALE)/ 2.) * SCALE);
-			playerY = (int)(getHeight() - playerHeight/2.);
+			playerX = (int) ((((double) getWidth() / SCALE) / 2.) * SCALE);
+			playerY = (int) (getHeight() - playerHeight / 2.);
 			direction = Math.atan2(mouseY - getHeight(), mouseX - getWidth() / 2.);
 
-			if (getTime() - lastHeartTime >= 3) {
-				hearts.add(new Heart(SCALE, winSize));
+			if (getTime() - lastHeartTime >= 1.5) {
+				stuff.add(Math.random() < .5 ? new Heart(SCALE, winSize) : new Fist(SCALE, winSize));
 				lastHeartTime = getTime();
 			}
 
-			for (Heart h : hearts)
-				h.tick();
-			
+			for (Falling f : stuff)
+				f.tick();
+
 			for (Projectile p : projectiles)
 				p.tick();
 		}
@@ -192,10 +226,11 @@ public class Main extends JPanel {
 				projectiles.add(new Bullet(SCALE, playerX, playerY, direction));
 				break;
 			case 2:
-				// MENU
+				addNotify();
+				currState = GameState.PLAY;
 				break;
 			case 3:
-				// CATCH
+				projectiles.add(new Parachute(SCALE, playerX, playerY, direction));
 				break;
 			}
 		}
